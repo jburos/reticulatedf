@@ -2,7 +2,6 @@
 library(reticulate)
 library(testthat)
 library(dplyr)
-reticulate::use_condaenv('root', conda = '/home/analysis/miniconda3/bin/conda', required = T) # local testing
 
 skip_if_no_numpy <- function() {
   have_numpy <- reticulate::py_module_available("numpy")
