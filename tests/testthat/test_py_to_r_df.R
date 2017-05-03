@@ -4,21 +4,21 @@ library(testthat)
 library(dplyr)
 
 skip_if_no_numpy <- function() {
-  have_numpy <- reticulate::py_module_available("numpy")
+  have_numpy <- reticulate::py_module_available('numpy')
   if (!have_numpy)
-    skip("numpy not available for testing")
+    skip('numpy not available for testing')
 }
 
 skip_if_no_pandas <- function() {
-  have_pandas <- reticulate::py_module_available("pandas")
+  have_pandas <- reticulate::py_module_available('pandas')
   if (!have_pandas)
-    skip("pandas not available for testing")
+    skip('pandas not available for testing')
 }
 
 test_python_nparray <- "
 import numpy as np
 npdata = np.zeros((2,), dtype=[('A', 'i4'),('B', 'f4'),('C', 'a10'), ('D', 'bool_'), ('E', 'a10')])
-npdata[:] = [(1,2., 'Hello', True, 'A'), (2,3.,\"World\", False, 'B')]
+npdata[:] = [(1,2., 'Hello', True, 'A'), (2,3.,'World', False, 'B')]
 "
 
 test_python_pandas <- "
@@ -26,7 +26,7 @@ import pandas as pd
 pddata = pd.DataFrame(npdata)
 "
 
-expected_df <- data.frame(A=c(1L, 2L), B=c(2.0, 3.0), C=c("Hello", "World"), D=c(TRUE, FALSE), E=c("A", "B"),
+expected_df <- data.frame(A=c(1L, 2L), B=c(2.0, 3.0), C=c('Hello', 'World'), D=c(TRUE, FALSE), E=c('A', 'B'),
                           stringsAsFactors = F)
 prep_df_by_type <- function(df) {
   expected_df_type <- list()
@@ -50,7 +50,7 @@ pddata2 = pd.DataFrame(npdata2)
 
 expected_df2 <- data.frame(A=c(1L, 2L, 3L, 4L),
                            B=c(2.0, 3.0, 4.0, 5.0),
-                           C=c("Hello", "World", "", "None"),
+                           C=c('Hello', 'World', '', 'None'),
                            D=c(TRUE, FALSE, FALSE, TRUE),
                            E=c('A', 'B', 'C', 'D'),
                           stringsAsFactors = F)
