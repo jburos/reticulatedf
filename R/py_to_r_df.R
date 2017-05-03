@@ -24,7 +24,7 @@ convert_filtered_to_df <- function(py_obj, dtype) {
 
   # convert py_obj to matrix (mat)
   if (dtype == 'object') {
-    mat <- try(reticulate::py_to_r(py_obj$values$astype('unicode')), silent = TRUE)
+    mat <- try(reticulate::py_to_r(py_obj$astype('unicode')$values), silent = TRUE)
     # handle string/char conversions
     if (inherits(mat[1:1], 'list')) {
       # sometimes each object gets translated to a 'list'
