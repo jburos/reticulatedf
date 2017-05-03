@@ -2,6 +2,7 @@
 library(reticulate)
 library(testthat)
 library(dplyr)
+reticulate::use_condaenv('root', conda = '/home/analysis/miniconda3/bin/conda', required = T) # local testing
 
 skip_if_no_numpy <- function() {
   have_numpy <- reticulate::py_module_available("numpy")
@@ -28,25 +29,49 @@ pddata = pd.DataFrame(npdata)
 
 expected_df <- data.frame(A=c(1L, 2L), B=c(2.0, 3.0), C=c('Hello', 'World'), D=c(TRUE, FALSE),
                           stringsAsFactors = F)
-expected_df_type <- list()
-expected_df_type['integer'] <- expected_df %>% dplyr::select_if(is.integer)
-expected_df_type['inexact'] <- expected_df %>% dplyr::select_if(is.double)
-expected_df_type['object'] <- expected_df %>% dplyr::select_if(is.character)
-expected_df_type['bool_'] <- expected_df %>% dplyr::select_if(is.logical)
+prep_df_by_type <- function(df) {
+  expected_df_type <- list()
+  expected_df_type['integer'] <- df %>% dplyr::select_if(is.integer)
+  expected_df_type['inexact'] <- df %>% dplyr::select_if(is.double)
+  expected_df_type['object'] <- df %>% dplyr::select_if(is.character)
+  expected_df_type['bool_'] <- df %>% dplyr::select_if(is.logical)
+  expected_df_type
+}
+
+expected_df_type <- prep_df_by_type(expected_df)
+
+# test case for chars with missing / NA values
+test_python_pandas2 <- "
+import numpy as np
+import pandas as pd
+npdata2 = np.zeros((4,), dtype=[('A', 'i4'),('B', 'f4'),('C', 'a10'), ('D', 'bool_')])
+npdata2[:] = [(1,2.,b'Hello', True), (2,3.,\"World\", False), (3, 4., b'', False), (4, 5., None, True)]
+pddata2 = pd.DataFrame(npdata2)
+"
+
+expected_df2 <- data.frame(A=c(1L, 2L, 3L, 4L),
+                           B=c(2.0, 3.0, 4.0, 5.0),
+                           C=c('Hello', 'World', '', NA),
+                           D=c(TRUE, FALSE, FALSE, TRUE),
+                          stringsAsFactors = F)
+expected_df_type2 <- prep_df_by_type(expected_df2)
+
 
 testthat::test_that('pandas dataframes of each type are converted correctly', {
+  skip_if_no_numpy()
   skip_if_no_pandas()
   main <- reticulate::py_run_string(test_python_nparray, convert = FALSE)
   main <- reticulate::py_run_string(test_python_pandas, convert = FALSE)
   for (dtype in ALLOWED_DTYPES) {
+    browser
     r_df <- py_to_r_df(main$pddata, dtypes = dtype)
     testthat::expect_is(r_df, 'data.frame', info = paste0('Result is not data.frame (dtype = ', dtype))
     testthat::expect_equivalent(r_df, expected_df_type[dtype], info = paste0('Data.frame was not converted correctly for dtype ',dtype))
   }
 })
 
-
 testthat::test_that('pandas dataframes of mixed type are converted correctly', {
+  skip_if_no_numpy()
   skip_if_no_pandas()
   main <- reticulate::py_run_string(test_python_nparray, convert = FALSE)
   main <- reticulate::py_run_string(test_python_pandas, convert = FALSE)
@@ -57,9 +82,19 @@ testthat::test_that('pandas dataframes of mixed type are converted correctly', {
 
 testthat::test_that('numpy arrays of mixed type are converted correctly', {
   skip_if_no_numpy()
+  skip_if_no_pandas()
   main <- reticulate::py_run_string(test_python_nparray, convert = FALSE)
   r_df <- py_to_r_df(main$npdata) %>% dplyr::select(order(colnames(.)))
   testthat::expect_is(r_df, 'data.frame', info = 'Result is not a data.frame')
   testthat::expect_equivalent(r_df, expected_df, info = 'Data.frame was not converted correctly')
+})
+
+testthat::test_that('pandas dataframes with character NA values are converted correctly', {
+  skip_if_no_numpy()
+  skip_if_no_pandas()
+  main <- reticulate::py_run_string(test_python_pandas2, convert = FALSE)
+  r_df2 <- py_to_r_df(main$pddata2) %>% dplyr::select(order(colnames(.)))
+  testthat::expect_is(r_df2, 'data.frame', info = 'Result is data.frame')
+  testthat::expect_equivalent(r_df2, expected_df2, info = 'Data.frame was not converted correctly')
 })
 
